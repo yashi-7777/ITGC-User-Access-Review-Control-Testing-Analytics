@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "itgc-user-access-review"
+version = "2.0.0"
+description = "Automated ITGC user-access-review control testing (SQL + pandas) with reconciliation, risk scoring, Excel workpaper and interactive dashboard. Uses SIMULATED data only."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "openpyxl>=3.1",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.5",
+    "playwright>=1.40",
+]
+
+[project.scripts]
+itgc-uar = "itgc_uar.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+itgc_uar = ["sql/*.sql", "config/*.yaml", "reporting/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "browser: needs Playwright + Chromium (skipped automatically if unavailable)",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]

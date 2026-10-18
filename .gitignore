@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Generated at run time (re-create with: itgc-uar all)
+data/
+outputs/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Secrets - never commit
+.env
+*.pem
+*.key

@@ -1,0 +1,52 @@
+# Default configuration for itgc-uar.
+# Copy this file, change values, and pass it with:  itgc-uar run --config my_config.yaml
+# Every value below can be overridden; unknown keys are rejected (typo protection).
+
+# The "as-of" date of the access review. All "days since ..." calculations use this date.
+review_date: "2026-09-30"
+
+thresholds:
+  dormant_days: 90                      # T2: active account unused for MORE than this many days
+  burst_threshold: 5                    # T6: this many failed logins ...
+  burst_window_minutes: 10              #     ... inside this many minutes = a burst
+  burst_success_lookahead_minutes: 30   # T6: a success this soon after a burst is "possible compromise"
+
+# Deviation rate (exceptions / population) the reviewer is willing to accept per control.
+# These are ILLUSTRATIVE parameters - in a real engagement they come from the audit methodology.
+tolerable_deviation_rate:
+  T1: 0.0
+  T2: 0.05
+  T3: 0.0
+  T4: 0.0
+  T5: 0.0
+  T6: 0.0
+
+# Risk-score heuristic (0-100). Transparent and adjustable - NOT an industry standard.
+# score = base score of the control + modifiers listed in docs/CONTROLS.md, capped at 100.
+scoring:
+  base:
+    T1: 40
+    T2: 15
+    T3: 55
+    T4: 50
+    T5: 35
+    T6: 30
+  critical_roles:                       # privileged roles that carry extra weight in T4
+    - System Admin
+    - DBA
+    - Cloud Admin
+    - Treasury Admin
+  priority_bands:                       # minimum score for each priority; anything lower is P4
+    P1: 70
+    P2: 50
+    P3: 30
+
+# Days allowed to remediate, counted from the review date, by priority.
+remediation_sla_days:
+  P1: 7
+  P2: 30
+  P3: 60
+  P4: 90
+
+# If true, data-quality ERRORs stop the run (recommended). Override on the CLI with --force.
+fail_on_data_quality_error: true
