@@ -29,8 +29,8 @@ evidence-backed way to do it:
 Requires Python 3.10+ (developed on 3.13; also run on pandas 2.2.3 and 3.0.5).
 
 ```bash
-git clone https://github.com/yashi-7777/itgc-user-access-review-control-testing-analytics.git
-cd itgc-user-access-review-control-testing-analytics
+git clone https://github.com/yashi-7777/ITGC-User-Access-Review-Control-Testing-Analytics.git
+cd ITGC-User-Access-Review-Control-Testing-Analytics
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
