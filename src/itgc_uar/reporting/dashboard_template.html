@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ITGC Access Review Dashboard</title>
+<style>
+:root{--bg:#fcfcfb;--panel:#fff;--text:#0b0b0b;--muted:#52514e;--line:#e3e2de;--c1:#104281;--c2:#2a78d6;--c3:#86b6ef;--warn:#b00020;--ok:#1d7a46;--chip:#f1f0ec}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121211;--panel:#1b1b19;--text:#f2f1ee;--muted:#a9a8a3;--line:#33322f;--c1:#86b6ef;--c2:#4b92e3;--c3:#1f5aa8;--warn:#ff7b8c;--ok:#5fcf8f;--chip:#262624}}
+:root[data-theme="dark"]{--bg:#121211;--panel:#1b1b19;--text:#f2f1ee;--muted:#a9a8a3;--line:#33322f;--c1:#86b6ef;--c2:#4b92e3;--c3:#1f5aa8;--warn:#ff7b8c;--ok:#5fcf8f;--chip:#262624}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+h1{font-size:20px;margin:0}
+.sub{color:var(--muted);font-size:12.5px}
+.badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:600;background:var(--chip);border:1px solid var(--line)}
+.badge.sim{color:var(--warn);border-color:var(--warn)}
+.badge.ok{color:var(--ok);border-color:var(--ok)}.badge.bad{color:var(--warn);border-color:var(--warn)}
+button,select,input{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}button:hover{border-color:var(--c2)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.kpi,.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}.kpi .l{color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;margin-bottom:12px}
+.card h2{font-size:14px;margin:0 0 2px}.card p.sub{margin:0 0 8px}
+table{border-collapse:collapse;width:100%}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+th.sortable{cursor:pointer}th.sortable:hover{color:var(--text)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow:auto;max-height:460px;border:1px solid var(--line);border-radius:10px}
+tbody tr.row{cursor:pointer}tbody tr.row:hover{background:var(--chip)}tbody tr.sel{background:var(--chip)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:4px 0 6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.detail{margin-top:10px;display:none}.detail.on{display:block}
+.detail dl{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;margin:8px 0 0}.detail dt{color:var(--muted)}.detail dd{margin:0}
+svg text{fill:var(--text);font-size:11.5px}svg .m{fill:var(--muted)}
+.heat td.h{text-align:center;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:12px;margin-top:8px}
+@media (max-width:560px){.detail dl{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>ITGC User Access Review &mdash; control testing dashboard</h1>
+  <div class="sub" id="meta"></div></div>
+  <div><span class="badge sim">SIMULATED DATA</span> <span class="badge" id="recBadge"></span> <button id="theme" title="Toggle light/dark">Theme</button></div>
+</header>
+<div class="kpis" id="kpis"></div>
+<div class="grid">
+  <div class="card"><h2>Control coverage &amp; exception rate</h2><p class="sub">Each row is one control: bar = deviation rate, tick = tolerable rate.</p><div id="coverage"></div></div>
+  <div class="card"><h2>Severity by control</h2><p class="sub">Exceptions per control, split by severity.</p>
+    <div class="legend"><span><i style="background:var(--c1)"></i>High</span><span><i style="background:var(--c2)"></i>Medium</span><span><i style="background:var(--c3)"></i>Low</span></div><div id="severity"></div></div>
+  <div class="card"><h2>Remediation priorities</h2><p class="sub">Risk-score band &rarr; priority &rarr; days to remediate.</p><div id="priority"></div></div>
+</div>
+<div class="grid">
+  <div class="card" style="grid-column:1/-1"><h2>Control results</h2><div class="scroll"><table id="ctl"></table></div></div>
+</div>
+<div class="grid">
+  <div class="card"><h2>Exceptions by department</h2><p class="sub">Count of exceptions; darker = more.</p><div class="scroll"><table class="heat" id="dept"></table></div></div>
+  <div class="card"><h2>SQL vs pandas reconciliation</h2><p class="sub">Two independent implementations of every test.</p><table id="rec"></table>
+  <div id="val"></div></div>
+</div>
+<div class="card">
+  <h2>Exception register <span class="sub" id="count"></span></h2>
+  <div class="filters">
+    <select id="fControl"><option value="">All controls</option></select>
+    <select id="fSev"><option value="">All severities</option><option>High</option><option>Medium</option><option>Low</option></select>
+    <select id="fPri"><option value="">All priorities</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select>
+    <select id="fDept"><option value="">All departments</option></select>
+    <input id="fText" type="search" placeholder="Search user, ID, evidence..." style="flex:1;min-width:180px">
+    <button id="reset">Reset</button><button id="csv">Export filtered CSV</button>
+  </div>
+  <div class="scroll"><table id="reg"><thead></thead><tbody></tbody></table></div>
+  <div class="detail card" id="detail"></div>
+  <div class="note">All names, IDs and systems are simulated. Click a row to see the evidence trail.</div>
+</div>
+</div>
+<script>
+const D = /*__DATA__*/null;
+const $ = s => document.querySelector(s);
+const SEV = {High:'var(--c1)',Medium:'var(--c2)',Low:'var(--c3)'};
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs={}, text){const e=document.createElement(tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;return e}
+function sv(tag, attrs={}, text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;return e}
+const pct = x => (x*100).toFixed(1)+'%';
+
+// theme
+const root=document.documentElement;
+try{const t=localStorage.getItem('theme');if(t)root.setAttribute('data-theme',t)}catch(e){}
+$('#theme').onclick=()=>{const dark=getComputedStyle(root).getPropertyValue('--bg').trim()==='#121211';const n=dark?'light':'dark';root.setAttribute('data-theme',n);try{localStorage.setItem('theme',n)}catch(e){}};
+
+// header + KPIs
+$('#meta').textContent=`Review date ${D.review_date} · dataset profile: ${D.profile} · config ${D.fingerprint} · v${D.version}`;
+const rb=$('#recBadge');rb.textContent=D.reconciled?'SQL = pandas on all 6 controls':'RECONCILIATION MISMATCH';rb.className='badge '+(D.reconciled?'ok':'bad');
+const reg=D.register, S=D.summary;
+const kp=[['Controls tested',S.length],['Population tested',S.reduce((a,r)=>a+r.population,0).toLocaleString()],['Exceptions',reg.length],
+ ['High severity',reg.filter(r=>r.severity==='High').length],['P1 priority',reg.filter(r=>r.priority==='P1').length],
+ ['Controls not effective',S.filter(r=>r.conclusion!=='Effective').length+' / '+S.length]];
+for(const [l,v] of kp){const k=el('div',{class:'kpi'});k.append(el('div',{class:'v'},String(v)),el('div',{class:'l'},l));$('#kpis').append(k)}
+
+// coverage chart
+(function(){const W=520,rowH=34,H=S.length*rowH+24,L=48,R=70,max=Math.max(0.05,...S.map(r=>Math.max(r.deviation_rate,r.tolerable_rate)))*1.15;
+ const s=sv('svg',{viewBox:`0 0 ${W} ${H}`,width:'100%',role:'img','aria-label':'Deviation rate per control'});
+ S.forEach((r,i)=>{const y=i*rowH+10,w=(W-L-R)*r.deviation_rate/max;
+  s.append(sv('text',{x:0,y:y+14},r.control_id));
+  const bar=sv('rect',{x:L,y:y,width:Math.max(w,1.5),height:18,rx:3,fill:'var(--c1)'});bar.append(sv('title',{},`${r.control}: ${r.exceptions} of ${r.population} (${pct(r.deviation_rate)}), tolerable ${pct(r.tolerable_rate)}`));s.append(bar);
+  const tx=L+(W-L-R)*r.tolerable_rate/max;s.append(sv('line',{x1:tx,x2:tx,y1:y-3,y2:y+21,stroke:'var(--warn)','stroke-width':2}));
+  s.append(sv('text',{x:L+Math.max(w,1.5)+6,y:y+14,class:'m'},`${r.exceptions}/${r.population} · ${pct(r.deviation_rate)}`))});
+ $('#coverage').append(s);
+ const lg=el('div',{class:'legend'});lg.innerHTML='<span><i style="background:var(--c1)"></i>Deviation rate</span><span><i style="background:var(--warn)"></i>Tolerable rate (tick)</span>';$('#coverage').append(lg)})();
+
+// severity stacked bars
+(function(){const W=520,rowH=34,H=S.length*rowH+24,L=48,R=40,max=Math.max(1,...S.map(r=>r.exceptions));
+ const s=sv('svg',{viewBox:`0 0 ${W} ${H}`,width:'100%',role:'img','aria-label':'Severity by control'});
+ S.forEach((r,i)=>{const y=i*rowH+10;let x=L;s.append(sv('text',{x:0,y:y+14},r.control_id));
+  for(const k of ['high','medium','low']){const w=(W-L-R)*r[k]/max;if(!w)continue;const n=k[0].toUpperCase()+k.slice(1);
+   const b=sv('rect',{x:x,y:y,width:w,height:18,fill:SEV[n]});b.append(sv('title',{},`${r.control_id} ${n}: ${r[k]}`));s.append(b);
+   if(w>20)s.append(sv('text',{x:x+w/2,y:y+13,'text-anchor':'middle',style:`fill:${n==='Low'?'#0b0b0b':'#fff'}`},String(r[k])));x+=w}
+  s.append(sv('text',{x:x+6,y:y+14,class:'m'},String(r.exceptions)))});
+ $('#severity').append(s)})();
+
+// priority bars
+(function(){const P=['p1','p2','p3','p4'],tot=P.map(p=>S.reduce((a,r)=>a+r[p],0)),max=Math.max(1,...tot);
+ const W=520,rowH=40,H=P.length*rowH+8,L=40;const s=sv('svg',{viewBox:`0 0 ${W} ${H}`,width:'100%',role:'img','aria-label':'Exceptions by priority'});
+ const shade=['var(--c1)','var(--c2)','var(--c3)','var(--line)'];
+ P.forEach((p,i)=>{const y=i*rowH+6,w=(W-L-170)*tot[i]/max,key=p.toUpperCase();s.append(sv('text',{x:0,y:y+15},key));
+  const b=sv('rect',{x:L,y:y,width:Math.max(w,1.5),height:20,rx:3,fill:shade[i]});b.append(sv('title',{},`${key}: ${tot[i]} exceptions, fix within ${D.sla_days[key]} days`));s.append(b);
+  s.append(sv('text',{x:L+Math.max(w,1.5)+6,y:y+15},String(tot[i])));
+  const lo=key==='P1'?D.priority_bands.P1:key==='P2'?D.priority_bands.P2:key==='P3'?D.priority_bands.P3:0;
+  s.append(sv('text',{x:L+Math.max(w,1.5)+36,y:y+15,class:'m'},`score ≥ ${lo} · fix in ${D.sla_days[key]}d`))});
+ $('#priority').append(s)})();
+
+// control table
+(function(){const t=$('#ctl');const cols=[['control_id','ID'],['control','Control'],['population','Population'],['exceptions','Exceptions'],['deviation_rate','Deviation'],['tolerable_rate','Tolerable'],['conclusion','Conclusion'],['high','High'],['medium','Med'],['low','Low'],['avg_risk_score','Avg score'],['owner','Suggested owner']];
+ const th=el('thead');const tr=el('tr');cols.forEach(([k,l])=>tr.append(el('th',{class:typeof S[0][k]==='number'?'num':''},l)));th.append(tr);t.append(th);
+ const tb=el('tbody');S.forEach(r=>{const tr=el('tr');cols.forEach(([k])=>{let v=r[k];if(k==='deviation_rate'||k==='tolerable_rate')v=pct(v);const td=el('td',{class:typeof r[k]==='number'?'num':''},String(v));if(k==='conclusion')td.style.color=r[k]==='Effective'?'var(--ok)':'var(--warn)';tr.append(td)});tb.append(tr)});t.append(tb)})();
+
+// dept heatmap
+(function(){const t=$('#dept'),ids=['T1','T2','T3','T4','T5','T6'];const mx=Math.max(1,...D.dept.flatMap(r=>ids.map(i=>r[i])));
+ const th=el('thead');const tr=el('tr');['Department',...ids,'Total'].forEach(h=>tr.append(el('th',{class:h==='Department'?'':'num'},h)));th.append(tr);t.append(th);
+ const tb=el('tbody');D.dept.forEach(r=>{const tr=el('tr');tr.append(el('td',{},r.department));ids.forEach(i=>{const a=r[i]/mx;const td=el('td',{class:'h'},String(r[i]));if(r[i]){td.style.background=`color-mix(in srgb, var(--c2) ${Math.round(15+a*70)}%, transparent)`}tr.append(td)});tr.append(el('td',{class:'num'},String(r.Total)));tb.append(tr)});t.append(tb)})();
+
+// reconciliation
+(function(){const t=$('#rec');t.append(Object.assign(el('thead'),{}));const tr=el('tr');['Control','SQL','pandas','Status'].forEach(h=>tr.append(el('th',{},h)));t.firstChild.append(tr);
+ const tb=el('tbody');D.recon.forEach(r=>{const tr=el('tr');[r.control_id,r.sql,r.pandas,r.status].forEach((v,i)=>{const td=el('td',{},String(v));if(i===3)td.style.color=r.status==='MATCH'?'var(--ok)':'var(--warn)';tr.append(td)});tb.append(tr)});t.append(tb);
+ if(D.validation){const planted=D.validation.reduce((a,r)=>a+r.planted,0),det=D.validation.reduce((a,r)=>a+r.detected,0),dec=D.validation.reduce((a,r)=>a+r.decoys,0),fp=D.validation.reduce((a,r)=>a+r.decoys_wrongly_flagged,0);
+  $('#val').append(el('p',{class:'note'},`Synthetic-data check: ${det} of ${planted} planted problems detected; ${fp} of ${dec} boundary decoys wrongly flagged. (Only possible because the data is simulated and the generator records what it planted.)`))}})();
+
+// register
+const COLS=[['exception_id','ID'],['control_id','Ctl'],['exception_type','Type'],['severity','Severity'],['risk_score','Score'],['priority','Prio'],['due_date','Due'],['department','Department'],['username','User'],['system','System']];
+const st={sort:'risk_score',dir:-1,sel:null};
+const uniq=k=>[...new Set(reg.map(r=>r[k]).filter(Boolean))].sort();
+uniq('control_id').forEach(v=>$('#fControl').append(el('option',{value:v},v)));uniq('department').forEach(v=>$('#fDept').append(el('option',{value:v},v)));
+function filtered(){const c=$('#fControl').value,s=$('#fSev').value,p=$('#fPri').value,d=$('#fDept').value,q=$('#fText').value.toLowerCase().trim();
+ return reg.filter(r=>(!c||r.control_id===c)&&(!s||r.severity===s)&&(!p||r.priority===p)&&(!d||r.department===d)&&(!q||[r.exception_id,r.username,r.employee_id,r.name,r.evidence,r.exception_type,r.system].some(x=>x&&String(x).toLowerCase().includes(q))))}
+function render(){const rows=filtered().sort((a,b)=>{const x=a[st.sort],y=b[st.sort];return (x>y?1:x<y?-1:0)*st.dir||(a.exception_id>b.exception_id?1:-1)});
+ $('#count').textContent=`(${rows.length} of ${reg.length})`;
+ const th=$('#reg thead');th.replaceChildren();const tr=el('tr');COLS.forEach(([k,l])=>{const h=el('th',{class:'sortable'+(k==='risk_score'?' num':'')},l+(st.sort===k?(st.dir>0?' ▲':' ▼'):''));h.onclick=()=>{if(st.sort===k)st.dir*=-1;else{st.sort=k;st.dir=k==='risk_score'?-1:1}render()};tr.append(h)});th.append(tr);
+ const tb=$('#reg tbody');tb.replaceChildren();rows.forEach(r=>{const tr=el('tr',{class:'row'+(st.sel===r.exception_id?' sel':'')});COLS.forEach(([k])=>{const td=el('td',{class:k==='risk_score'?'num':''},r[k]==null?'':String(r[k]));if(k==='severity')td.style.fontWeight='700';tr.append(td)});tr.onclick=()=>{st.sel=r.exception_id;show(r);render()};tb.append(tr)});
+ if(!rows.length){const tr=el('tr');tr.append(Object.assign(el('td',{colspan:COLS.length},'No exceptions match these filters.')));tb.append(tr)}}
+function show(r){const d=$('#detail');d.replaceChildren();d.classList.add('on');d.append(el('h2',{},`${r.exception_id} — ${r.exception_type}`));const dl=el('dl');
+ [['Severity / score',`${r.severity} · risk score ${r.risk_score} · ${r.priority}, due ${r.due_date}`],['Who / what',[r.name,r.employee_id,r.username,r.system,r.role].filter(Boolean).join(' · ')],['Evidence',r.evidence],['Score build-up',r.score_factors],['Recommended action',r.recommended_action],['Suggested owner',r.owner],['Source rows',`access_id: ${r.access_ids||'n/a'} · key: ${r.entity_key}`]].forEach(([k,v])=>{dl.append(el('dt',{},k),el('dd',{},v))});d.append(dl)}
+['fControl','fSev','fPri','fDept'].forEach(i=>$('#'+i).onchange=render);$('#fText').oninput=render;
+$('#reset').onclick=()=>{['fControl','fSev','fPri','fDept'].forEach(i=>$('#'+i).value='');$('#fText').value='';render()};
+$('#csv').onclick=()=>{const rows=filtered(),keys=Object.keys(reg[0]||{});const q=v=>v==null?'':'"'+String(v).replace(/"/g,'""')+'"';
+ const blob=new Blob([[keys.join(','),...rows.map(r=>keys.map(k=>q(r[k])).join(','))].join('\n')],{type:'text/csv'});const a=el('a',{href:URL.createObjectURL(blob),download:'filtered_exceptions.csv'});document.body.append(a);a.click();a.remove()};
+render();
+</script>
+</body>
+</html>
