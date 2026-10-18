@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import pandas as pd
-
+import pytest
 from conftest import acc, build, emp, ev
+
 from itgc_uar.dataquality import run_data_quality
 from itgc_uar.engine import DataQualityError, run_controls
-import pytest
 
 
 def failed(report, cid):

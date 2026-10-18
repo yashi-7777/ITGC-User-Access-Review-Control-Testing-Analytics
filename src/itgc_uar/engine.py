@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 import pandas as pd
 
 from itgc_uar.config import CONTROL_IDS, Config
-from itgc_uar.controls import CONTROLS, UNASSIGNED, Context
+from itgc_uar.controls import CONTROLS, Context
 from itgc_uar.dataquality import DQReport, run_data_quality
 from itgc_uar.dataset import Dataset
 from itgc_uar.reconcile import ReconResult, reconcile
@@ -96,7 +96,7 @@ def run_controls(ds: Dataset, cfg: Config, force: bool = False) -> RunResult:
         sql_df = sql_df.assign(_k=spec.make_key(sql_df).values if len(sql_df) else []).sort_values("_k").reset_index(drop=True)
         keys = sql_df.pop("_k")
         extra = []
-        for n, (key, row) in enumerate(zip(keys, sql_df.to_dict("records")), start=1):
+        for n, (key, row) in enumerate(zip(keys, sql_df.to_dict("records"), strict=True), start=1):
             f = spec.classify(row, ctx)
             score = total_score(f["parts"])
             prio = priority_for(score, cfg)
@@ -147,6 +147,7 @@ def run_controls(ds: Dataset, cfg: Config, force: bool = False) -> RunResult:
             "owner": spec.owner, "reconciliation": rec.status,
         })
 
+    conn.close()
     reg = pd.DataFrame(register, columns=REGISTER_COLUMNS)
     reg = reg.sort_values(["risk_score", "exception_id"], ascending=[False, True]).reset_index(drop=True)
     dept = (reg.pivot_table(index="department", columns="control_id", values="exception_id", aggfunc="count",

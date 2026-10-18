@@ -97,7 +97,7 @@ $('#theme').onclick=()=>{const dark=getComputedStyle(root).getPropertyValue('--b
 $('#meta').textContent=`Review date ${D.review_date} · dataset profile: ${D.profile} · config ${D.fingerprint} · v${D.version}`;
 const rb=$('#recBadge');rb.textContent=D.reconciled?'SQL = pandas on all 6 controls':'RECONCILIATION MISMATCH';rb.className='badge '+(D.reconciled?'ok':'bad');
 const reg=D.register, S=D.summary;
-const kp=[['Controls tested',S.length],['Population tested',S.reduce((a,r)=>a+r.population,0).toLocaleString()],['Exceptions',reg.length],
+const kp=[['Controls tested',S.length],['Items tested (all controls)',S.reduce((a,r)=>a+r.population,0).toLocaleString()],['Exceptions',reg.length],
  ['High severity',reg.filter(r=>r.severity==='High').length],['P1 priority',reg.filter(r=>r.priority==='P1').length],
  ['Controls not effective',S.filter(r=>r.conclusion!=='Effective').length+' / '+S.length]];
 for(const [l,v] of kp){const k=el('div',{class:'kpi'});k.append(el('div',{class:'v'},String(v)),el('div',{class:'l'},l));$('#kpis').append(k)}

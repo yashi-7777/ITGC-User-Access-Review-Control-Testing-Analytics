@@ -9,9 +9,9 @@ raw exception row into an audit-style finding: type, severity, risk score, evide
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from importlib import resources
-from typing import Callable
 
 import numpy as np
 import pandas as pd
